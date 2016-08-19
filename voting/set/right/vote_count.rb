@@ -33,6 +33,7 @@ end
 def vote_up insert_before_id=false
   if Auth.signed_in?
     Auth.as_bot do
+      # binding.pry
       case vote_status
       when '?'
         uv_card = Auth.current.upvotes_card
@@ -75,17 +76,20 @@ end
 def add_vote vote_card, votee_id, insert_before_id=false
   if insert_before_id
     vote_card.insert_id_before votee_id, insert_before_id
-    vote_card.save!
+    add_subcard vote_card
+    # vote_card.save!
     update_votecount
   elsif vote_card.add_id votee_id
-    vote_card.save!
+    # vote_card.save!
+    add_subcard vote_card
     update_votecount
   end
 end
 
 def delete_vote vote_card, votee_id
   if vote_card.drop_id votee_id
-    vote_card.save!
+    # vote_card.save!
+    add_subcard vote_card
     update_votecount
   end
 end
@@ -148,7 +152,15 @@ def update_votecount
                    return: 'count'
                  )
                end
-
+  # loop the subcards and see if left is inside
+  subcards.each do |subcard|
+    case subcard.right.codename
+    when :upvotes.to_s
+      up_count += 1 if subcard.item_cards.any? {|c| c.id == left.id}
+    when :downvotes.to_s
+      down_count += 1 if subcard.item_cards.any? {|c| c.id == left.id}
+    end
+  end
   uvc = left.upvote_count_card
   uvc.auto_content = true
   subcards.add uvc.name, content: up_count.to_s
